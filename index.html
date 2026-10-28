@@ -139,6 +139,9 @@ button:focus-visible,label:focus-within{outline:3px solid var(--teal);outline-of
 .vb span{font-weight:700;color:var(--ink);margin-right:6px}
 .hidtag{font-size:11px;font-weight:700;color:#6b4fa0;background:#F1EBFA;border-radius:6px;padding:2px 6px;vertical-align:2px;white-space:nowrap}
 .wh{display:block;font-size:12px;font-weight:500;color:var(--mute);margin-top:1px}
+.near{margin:8px 0 0;font-size:13px;line-height:1.55;color:#7a4b00;background:#FFF4DC;border:1.5px solid #EDCF8A;border-radius:9px;padding:7px 10px 7px 30px;position:relative}
+.near:before{content:"!";position:absolute;left:9px;top:8px;width:15px;height:15px;border-radius:50%;background:#E0A100;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.near b{display:block;font-size:13.5px;color:#5c3a00}
 .law{margin-top:8px;border-top:1px dashed var(--line);padding-top:7px}
 .law summary{font-size:12.5px;color:var(--teal-d);font-weight:600;cursor:pointer;list-style:none}
 .law summary::-webkit-details-marker{display:none}
@@ -199,12 +202,12 @@ button:focus-visible,label:focus-within{outline:3px solid var(--teal);outline-of
 "use strict";
 // ---------- Rules (demo rule set, Korea, as of Oct 2026) ----------
 const RULES={
-  pb:{t:"보조배터리 · 리튬배터리",x:"위탁 수하물 불가, 기내 휴대만 가능. 160Wh 이하 1인 최대 2개, 100Wh 초과~160Wh 이하는 항공사 승인 필요, 160Wh 초과는 반입 불가. 기내에서 사용·충전 금지.",s:"인천국제공항 제한물품 안내 · 국토교통부 (2026.4.20 시행)"},
+  pb:{t:"보조배터리 · 리튬배터리",x:"위탁 수하물 불가, 기내 휴대만 가능. 160Wh 이하 1인 최대 2개, 100Wh 초과~160Wh 이하는 항공사 승인 필요, 160Wh 초과는 반입 불가. 기내에서 사용·충전 금지. 기내 선반 보관 금지, 몸에 지니거나 좌석 앞 주머니에 보관. 단자는 절연테이프나 지퍼백으로 보호.",s:"인천국제공항 제한물품 안내 · 국토교통부 (선반 보관 금지 2025.3.1, 1인 2개 2026.4.20 시행)"},
   liq:{t:"액체 · 젤 · 스프레이 (국제선 기내)",x:"개별 용기당 100ml 이하, 1인당 1L 비닐 지퍼백 1개에 한해 기내 반입. 100ml 초과 용기는 위탁 수하물로(위탁은 용량 제한 없음, 인화성 제외).",s:"인천국제공항 제한물품 안내"},
   lighter:{t:"라이터 · 성냥",x:"일반 라이터 또는 안전성냥 1인 1개 기내 휴대 가능. 위탁 수하물 불가.",s:"항공 위험물 운송 기준 · 항공사 수하물 규정"},
   blade:{t:"칼 · 도검류 등 날붙이",x:"칼·도검류 등 날이 있는 물품은 기내 휴대 불가, 위탁 수하물은 가능.",s:"인천국제공항 제한물품 안내"},
   gas:{t:"인화성 가스 (부탄가스 등)",x:"인화성 가스·액체는 기내 휴대와 위탁 수하물 모두 불가.",s:"인천국제공항 제한물품 안내"},
-  ecig:{t:"전자담배",x:"객실(기내) 반입만 가능하며 위탁 수하물로는 반입 불가.",s:"인천국제공항 제한물품 FAQ"},
+  ecig:{t:"전자담배",x:"객실(기내) 반입만 가능하며 위탁 수하물로는 반입 불가. 기내 선반 보관 금지, 몸에 지니거나 좌석 앞 주머니에 보관.",s:"인천국제공항 제한물품 FAQ · 국토교통부 (2025.3.1 시행)"},
   stick:{t:"등산용 스틱",x:"기내 반입은 가능하나, 끝이 날카로우면 객실 반입이 제한될 수 있어 위탁 수하물 권장.",s:"인천국제공항 제한물품 FAQ"},
   laptop:{t:"노트북 등 휴대용 전자기기",x:"기내 휴대 가능. 보안검색 때 가방에서 꺼내 바구니에 따로 올림.",s:"인천국제공항 제한물품 FAQ"},
   water:{t:"음료 · 물",x:"음료도 액체류 규정을 따름. 기내는 100ml 초과 음료 불가, 위탁 수하물은 가능.",s:"인천국제공항 제한물품 안내 (액체류)"},
@@ -402,7 +405,7 @@ function startSample(bag){
 
 // ---------- Live AI ----------
 function rulesText(){return Object.entries(RULES).map(([k,r])=>`[${k}] ${r.t}: ${r.x}`).join("\n");}
-function buildPrompt(state){return `당신은 인천공항 출국 여객의 짐 사전점검 도우미입니다. 사진은 여객이 출국 전날 찍은 여행 가방 내부입니다. 국제선입니다. 이 가방은 ${state.mode==="k"?"위탁 수하물(카운터에서 부치는 짐)":"기내 가방(들고 타는 짐)"}입니다. 이 가방 기준으로 판정하세요. 여객은 기내 가방과 위탁 수하물을 둘 다 쓸 수 있습니다.
+function buildPrompt(state){return `당신은 인천공항 출국 여객의 짐 사전점검 도우미입니다. 사진은 여객이 출국 전날 찍은 여행 가방 내부입니다. 국제선입니다. 이 가방은 ${state.mode==="k"?"위탁 수하물(카운터에서 부치는 짐)":"기내 가방(들고 타는 짐)"}입니다. 이 가방 기준으로 판정하세요. 여객은 기내 가방과 위탁 수하물을 둘 다 쓸 수 있습니다. 보조배터리는 물품명에 "보조배터리"라는 단어를 넣어 주세요.
 아래 규정만 근거로 사진 속 물품을 판정하세요.
 먼저 사진을 구역별로 꼼꼼히 훑어 모든 물품을 찾으세요. 옷·수건·파우치 사이에 일부만 보이는 물건(모서리, 끝부분, 케이블, 뚜껑, 다른 색 면)도 찾아서 무엇인지 추정하세요. 예: 옷 사이로 보이는 납작하고 단단한 판 모양 → 노트북·태블릿 가능성, 원통형 금속 → 스프레이·가스 가능성. 일부만 보이는 물품은 visibility="일부 가려짐"으로 표시하세요.
 옷·책·충전 케이블처럼 규정과 무관한 것이 확실한 물품만 생략하세요. 판정할 물품이 없으면 빈 배열을 반환하세요.
@@ -459,18 +462,29 @@ async function startUpload(file){
 
 // ---------- Server judge (standalone site) ----------
 let serverOK=false;
+function toB64(bmp,sx,sy,sw,sh,max){
+  const sc=Math.min(1,max/Math.max(sw,sh));
+  const c=document.createElement("canvas");c.width=Math.max(1,Math.round(sw*sc));c.height=Math.max(1,Math.round(sh*sc));
+  c.getContext("2d").drawImage(bmp,sx,sy,sw,sh,0,0,c.width,c.height);
+  const url=c.toDataURL("image/jpeg",0.85);return url.slice(url.indexOf(",")+1);
+}
 async function shrink(file){
   let bmp;
   try{bmp=await createImageBitmap(file);}catch(e){throw {code:"bad_image"};}
-  const max=1600,sc=Math.min(1,max/Math.max(bmp.width,bmp.height));
-  const c=document.createElement("canvas");c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);
-  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
-  const url=c.toDataURL("image/jpeg",0.85);return url.slice(url.indexOf(",")+1);
+  const W=bmp.width,H=bmp.height,ov=0.15,hw=W/2,hh=H/2;
+  const imgs=[toB64(bmp,0,0,W,H,1600)];
+  // 4등분 확대 조각 (가장자리가 잘리지 않게 15%씩 겹침)
+  [[0,0],[1,0],[0,1],[1,1]].forEach(([i,j])=>{
+    const x=Math.max(0,i*hw-hw*ov),y=Math.max(0,j*hh-hh*ov);
+    const w=Math.min(W-x,hw*(1+ov)),h=Math.min(H-y,hh*(1+ov));
+    imgs.push(toB64(bmp,x,y,w,h,1200));
+  });
+  return imgs;
 }
 async function serverJudge(file,mode,signal){
-  const image=await shrink(file);
+  const images=await shrink(file);
   let r;
-  try{r=await fetch("/api/judge",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode,image,mime:"image/jpeg"}),signal});}
+  try{r=await fetch("/api/judge",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode,images,mime:"image/jpeg"}),signal});}
   catch(e){if(e&&e.name==="AbortError")throw e;throw {code:"upstream_error"};}
   let d=null;try{d=await r.json();}catch(e){}
   if(!r.ok||!d)throw {code:(d&&d.code)||"upstream_error"};
@@ -486,6 +500,11 @@ async function serverJudge(file,mode,signal){
   }catch(e){}
 })();
 
+function keepNear(it){
+  if(it.cat==="ban")return false;
+  if(it.rule==="ecig")return true;
+  return it.rule==="pb"&&/보조\s*배터리|파워\s*뱅크|power\s*bank|배터리\s*팩/i.test(it.name||"");
+}
 // ---------- Result ----------
 function photoMarks(items,F){
   let e="",p="";
@@ -513,6 +532,7 @@ function renderResult(){
     <div class="items" id="items">${F?`<div class="fbar"><span><b>${lab(F)}</b> ${n[F]}개</span><button type="button" id="fall">전체 보기</button></div>`:""}${items.map((it,i)=>{if(F&&it.cat!==F)return "";const R=it.rule&&RULES[it.rule];return `<article class="it">
       <div class="hd"><span class="no">${i+1}</span><span class="nm">${esc(it.name)}${it.hid?` <span class="hidtag">일부 가려짐</span>`:""}${it.where?`<small class="wh">${esc(it.where)}</small>`:""}</span><span class="chip ${CAT[it.cat].c}">${lab(it.cat)}</span></div>
       <p class="rs">${esc(it.reason)}</p>
+      ${keepNear(it)?`<p class="near"><b>기내 선반 보관 금지</b>비행 중에는 꼭 몸에 지니거나 좌석 앞 주머니에 넣어 주세요. 단자는 절연테이프나 지퍼백으로 감싸 주세요.</p>`:""}
       ${it.basis?`<p class="vb"><span>${esc(it.basis)}</span>${esc(it.bnote||"")}</p>`:""}
       ${it.action?`<p class="ac">${esc(it.action)}</p>`:""}
       ${R?`<details class="law"><summary>근거 규정 · ${esc(R.t)}</summary><p>${esc(R.x)}<small>${esc(R.s)}</small></p></details>`:""}
