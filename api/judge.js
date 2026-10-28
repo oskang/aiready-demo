@@ -1,21 +1,21 @@
 // Aiready AI 짐 점검 - 사진 판정 서버 (Vercel 서버리스 함수)
-// 환경변수: GEMINI_API_KEY (필수), GEMINI_MODEL (선택, 기본 gemini-3.5-flash-lite), GEMINI_THINKING (선택, low|high|off, 기본 low)
+// 환경변수: GEMINI_API_KEY (필수), GEMINI_MODEL (선택, 기본 gemini-3.8-flash), GEMINI_THINKING (선택, low|high|off, 기본 low)
 export const config = { maxDuration: 120 };
 
 const RULES={
-  pb:{t:"보조배터리 · 리튬배터리",x:"위탁 수하물 불가, 기내 휴대만 가능. 160Wh 이하 1인 최대 2개, 100Wh 초과~160Wh 이하는 항공사 승인 필요, 160Wh 초과는 반입 불가. 기내에서 사용·충전 금지.",s:"인천국제공항 제한물품 안내 · 국토교통부 (2026.4.20 시행)"},
+  pb:{t:"보조배터리 · 리튬배터리",x:"위탁 수하물 불가, 기내 휴대만 가능. 160Wh 이하 1인 최대 2개, 100Wh 초과~160Wh 이하는 항공사 승인 필요, 160Wh 초과는 반입 불가. 기내에서 사용·충전 금지. 기내 선반 보관 금지, 몸에 지니거나 좌석 앞 주머니에 보관. 단자는 절연테이프나 지퍼백으로 보호.",s:"인천국제공항 제한물품 안내 · 국토교통부 (선반 보관 금지 2025.3.1, 1인 2개 2026.4.20 시행)"},
   liq:{t:"액체 · 젤 · 스프레이 (국제선 기내)",x:"개별 용기당 100ml 이하, 1인당 1L 비닐 지퍼백 1개에 한해 기내 반입. 100ml 초과 용기는 위탁 수하물로(위탁은 용량 제한 없음, 인화성 제외).",s:"인천국제공항 제한물품 안내"},
   lighter:{t:"라이터 · 성냥",x:"일반 라이터 또는 안전성냥 1인 1개 기내 휴대 가능. 위탁 수하물 불가.",s:"항공 위험물 운송 기준 · 항공사 수하물 규정"},
   blade:{t:"칼 · 도검류 등 날붙이",x:"칼·도검류 등 날이 있는 물품은 기내 휴대 불가, 위탁 수하물은 가능.",s:"인천국제공항 제한물품 안내"},
   gas:{t:"인화성 가스 (부탄가스 등)",x:"인화성 가스·액체는 기내 휴대와 위탁 수하물 모두 불가.",s:"인천국제공항 제한물품 안내"},
-  ecig:{t:"전자담배",x:"객실(기내) 반입만 가능하며 위탁 수하물로는 반입 불가.",s:"인천국제공항 제한물품 FAQ"},
+  ecig:{t:"전자담배",x:"객실(기내) 반입만 가능하며 위탁 수하물로는 반입 불가. 기내 선반 보관 금지, 몸에 지니거나 좌석 앞 주머니에 보관.",s:"인천국제공항 제한물품 FAQ · 국토교통부 (2025.3.1 시행)"},
   stick:{t:"등산용 스틱",x:"기내 반입은 가능하나, 끝이 날카로우면 객실 반입이 제한될 수 있어 위탁 수하물 권장.",s:"인천국제공항 제한물품 FAQ"},
   laptop:{t:"노트북 등 휴대용 전자기기",x:"기내 휴대 가능. 보안검색 때 가방에서 꺼내 바구니에 따로 올림.",s:"인천국제공항 제한물품 FAQ"},
   water:{t:"음료 · 물",x:"음료도 액체류 규정을 따름. 기내는 100ml 초과 음료 불가, 위탁 수하물은 가능.",s:"인천국제공항 제한물품 안내 (액체류)"},
   spr:{t:"스프레이 (위탁 수하물)",x:"인화성이 없는 스프레이류는 1개당 500ml(500g) 이하, 총 2L(2kg) 범위에서 위탁 가능.",s:"인천국제공항 제한물품 안내"}
 };
 function rulesText(){return Object.entries(RULES).map(([k,r])=>`[${k}] ${r.t}: ${r.x}`).join("\n");}
-function buildPrompt(state){return `당신은 인천공항 출국 여객의 짐 사전점검 도우미입니다. 사진은 여객이 출국 전날 찍은 여행 가방 내부입니다. 국제선입니다. 이 가방은 ${state.mode==="k"?"위탁 수하물(카운터에서 부치는 짐)":"기내 가방(들고 타는 짐)"}입니다. 이 가방 기준으로 판정하세요. 여객은 기내 가방과 위탁 수하물을 둘 다 쓸 수 있습니다.
+function buildPrompt(state){return `당신은 인천공항 출국 여객의 짐 사전점검 도우미입니다. 사진은 여객이 출국 전날 찍은 여행 가방 내부입니다. 국제선입니다. 이 가방은 ${state.mode==="k"?"위탁 수하물(카운터에서 부치는 짐)":"기내 가방(들고 타는 짐)"}입니다. 이 가방 기준으로 판정하세요. 여객은 기내 가방과 위탁 수하물을 둘 다 쓸 수 있습니다. 보조배터리는 물품명에 "보조배터리"라는 단어를 넣어 주세요.
 아래 규정만 근거로 사진 속 물품을 판정하세요.
 먼저 사진을 구역별로 꼼꼼히 훑어 모든 물품을 찾으세요. 옷·수건·파우치 사이에 일부만 보이는 물건(모서리, 끝부분, 케이블, 뚜껑, 다른 색 면)도 찾아서 무엇인지 추정하세요. 예: 옷 사이로 보이는 납작하고 단단한 판 모양 → 노트북·태블릿 가능성, 원통형 금속 → 스프레이·가스 가능성. 일부만 보이는 물품은 visibility="일부 가려짐"으로 표시하세요.
 옷·책·충전 케이블처럼 규정과 무관한 것이 확실한 물품만 생략하세요. 판정할 물품이 없으면 빈 배열을 반환하세요.
@@ -42,7 +42,7 @@ function parseJSON(text){
 
 export default async function handler(req,res){
   const key=process.env.GEMINI_API_KEY;
-  const model=process.env.GEMINI_MODEL||"gemini-3.5-flash-lite";
+  const model=process.env.GEMINI_MODEL||"gemini-3.8-flash";
   res.setHeader("Cache-Control","no-store");
   if(req.method==="GET"){return res.status(200).json({ok:!!key,model});}
   if(req.method!=="POST"){return res.status(405).json({code:"invalid_request"});}
@@ -50,16 +50,22 @@ export default async function handler(req,res){
   let body=req.body;
   if(typeof body==="string"){try{body=JSON.parse(body);}catch(e){body=null;}}
   const mode=body&&body.mode==="k"?"k":"c";
-  const image=body&&typeof body.image==="string"?body.image:"";
+  let images=body&&Array.isArray(body.images)?body.images.filter(x=>typeof x==="string"&&x.length>0).slice(0,5):[];
+  if(!images.length&&body&&typeof body.image==="string"&&body.image)images=[body.image];
   const mime=body&&/^image\/(jpeg|png|webp)$/.test(body.mime||"")?body.mime:"image/jpeg";
-  if(!image){return res.status(400).json({code:"bad_image"});}
-  if(image.length>4_000_000){return res.status(413).json({code:"too_large"});}
+  if(!images.length){return res.status(400).json({code:"bad_image"});}
+  if(images.reduce((a,x)=>a+x.length,0)>4_200_000){return res.status(413).json({code:"too_large"});}
+  const labels=["사진 1: 가방 전체","사진 2: 왼쪽 위 확대","사진 3: 오른쪽 위 확대","사진 4: 왼쪽 아래 확대","사진 5: 오른쪽 아래 확대"];
+  const parts=[];
+  images.forEach((d,i)=>{parts.push({text:labels[i]||`사진 ${i+1}`});parts.push({inline_data:{mime_type:mime,data:d}});});
+  const multi=images.length>1?`\n사진 1은 가방 전체이고, 사진 2~${images.length}는 같은 가방을 4등분해 확대한 조각입니다. 작은 물건은 확대 조각에서 꼼꼼히 찾으세요. 특히 보조배터리·라이터·전자담배·작은 액체 용기·칼처럼 작고 흔한 물품이 가장자리나 구석, 옷 사이에 있는지 조각마다 확인하세요. 같은 물건이 여러 조각에 보이면 한 번만 적고, where는 가방 전체 기준 위치로 쓰세요.`:"";
+  parts.push({text:buildPrompt({mode})+multi});
   try{
     const call=(gen)=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
       method:"POST",
       headers:{"content-type":"application/json","x-goog-api-key":key},
       body:JSON.stringify({
-        contents:[{role:"user",parts:[{inline_data:{mime_type:mime,data:image}},{text:buildPrompt({mode})}]}],
+        contents:[{role:"user",parts}],
         generationConfig:gen
       })
     });
