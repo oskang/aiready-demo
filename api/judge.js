@@ -1,6 +1,6 @@
 // Aiready AI 짐 점검 - 사진 판정 서버 (Vercel 서버리스 함수)
-// 환경변수: GEMINI_API_KEY (필수), GEMINI_MODEL (선택, 기본 gemini-2.5-flash)
-export const config = { maxDuration: 60 };
+// 환경변수: GEMINI_API_KEY (필수), GEMINI_MODEL (선택, 기본 gemini-3.5-flash-lite), GEMINI_THINKING (선택, low|high|off, 기본 low)
+export const config = { maxDuration: 120 };
 
 const RULES={
   pb:{t:"보조배터리 · 리튬배터리",x:"위탁 수하물 불가, 기내 휴대만 가능. 160Wh 이하 1인 최대 2개, 100Wh 초과~160Wh 이하는 항공사 승인 필요, 160Wh 초과는 반입 불가. 기내에서 사용·충전 금지.",s:"인천국제공항 제한물품 안내 · 국토교통부 (2026.4.20 시행)"},
@@ -42,7 +42,7 @@ function parseJSON(text){
 
 export default async function handler(req,res){
   const key=process.env.GEMINI_API_KEY;
-  const model=process.env.GEMINI_MODEL||"gemini-2.5-flash";
+  const model=process.env.GEMINI_MODEL||"gemini-3.5-flash-lite";
   res.setHeader("Cache-Control","no-store");
   if(req.method==="GET"){return res.status(200).json({ok:!!key,model});}
   if(req.method!=="POST"){return res.status(405).json({code:"invalid_request"});}
@@ -55,14 +55,19 @@ export default async function handler(req,res){
   if(!image){return res.status(400).json({code:"bad_image"});}
   if(image.length>4_000_000){return res.status(413).json({code:"too_large"});}
   try{
-    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+    const call=(gen)=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
       method:"POST",
       headers:{"content-type":"application/json","x-goog-api-key":key},
       body:JSON.stringify({
         contents:[{role:"user",parts:[{inline_data:{mime_type:mime,data:image}},{text:buildPrompt({mode})}]}],
-        generationConfig:{responseMimeType:"application/json",temperature:0.2}
+        generationConfig:gen
       })
     });
+    const base={responseMimeType:"application/json"};
+    const think=process.env.GEMINI_THINKING||"low";
+    // 빠른 응답을 위해 생각 단계를 줄여서 먼저 요청하고, 모델이 이 옵션을 모르면 옵션 없이 다시 요청
+    let r=await call(think==="off"?base:{...base,thinkingConfig:{thinkingLevel:think}});
+    if(r.status===400&&think!=="off"){r=await call(base);}
     const d=await r.json().catch(()=>null);
     if(!r.ok){
       console.error("gemini error",r.status,JSON.stringify(d).slice(0,500));
